@@ -1,2 +1,5 @@
+import Data
+import MoleculesInteraction
+
 if __name__ == '__main__':
-    pass
+    MoleculesInteraction.start(**Data.paramsAndConditions)
