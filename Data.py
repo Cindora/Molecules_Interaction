@@ -2,7 +2,7 @@ paramsAndConditions = {
     'AgRadius': 106e-12,
     'AgMass': 6.63352599E-26,
 
-    'AlNumOfAtoms': 4,
+    'AlNumOfAtoms': 6,
     'AlRadius': 121e-12,
     'AlMass': 4.48038654E-26,
 
