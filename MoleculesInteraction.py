@@ -3,6 +3,21 @@ import numpy as np
 import os
 
 
+def calcForces(Masses, Velocities, TimeStep):
+    numOfAtoms, dimension = Velocities.shape
+
+    someForce = np.random.randn(numOfAtoms, dimension) * np.sqrt(2.0 * Masses / TimeStep)[np.newaxis].T
+    forces = (Velocities * Masses[np.newaxis].T) + someForce
+
+    return forces
+
+
+def applyForces(Positions, Velocities, forces, Masses, TimeStep):
+    Positions += Velocities * TimeStep
+    Velocities += forces * TimeStep / Masses[np.newaxis].T
+
+
+
 def start(**args):
     """ Считывание данных из кортежа """
     AgRadius, AgMass, AlNumOfAtoms, AlRadius, AlMass = \
@@ -32,24 +47,25 @@ def start(**args):
     for i in range(0, AlNumOfAtoms):
         AlPositions[i][0], AlPositions[i][1] = 1 / 4 + i % 2 * 1 / 2, i // 2 * coeff + coeff
 
-    # print(AlPositions)
-
     for i in range(dimension):  # Подгонка значений относительно границ области
         AlPositions[:, i] = Borders[i][0] + (Borders[i][1] - Borders[i][0]) * AlPositions[:, i]
         AgPosition[i] = Borders[i][0] + (Borders[i][1] - Borders[i][0]) * AgPosition[i]
 
-    # print("Pos: ", AlPositions, "\n", AgPosition)
-    # print("Vel: ", AlVelocity, "\n", AgVelocity)
     Positions = np.append([AgPosition], AlPositions, axis=0)
     Velocities = np.append([AgVelocity], AlVelocity, axis=0)
+    Masses = np.append([AgMass], AlMass)
     Radius = np.append([AgRadius], AlRadius)
-
-    # print(Positions, "\n", Velocities, "\n" ,Radius)
 
     if os.path.exists(OutputFileName):
         os.remove(OutputFileName)
 
     step = 0
 
-    Dump.writeOutput(OutputFileName, AlNumOfAtoms + 1, step, Borders,
-                     radius=Radius, pos=Positions, v=Velocities)  # Вывод данных в .dump файл
+    while step <= Steps:
+        step += 1
+
+        forces = calcForces(Masses, Velocities, TimeStep)
+        applyForces(Positions, Velocities, forces, Masses, TimeStep)
+
+        Dump.writeOutput(OutputFileName, AlNumOfAtoms + 1, step, Borders,
+                         radius=Radius, pos=Positions, v=Velocities)  # Вывод данных в .dump файл
