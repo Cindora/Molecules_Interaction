@@ -1,22 +1,66 @@
 import Dump
 import numpy as np
+import math
 import os
 
+AgEpsilon = 0.00801  
+AgSigma = 3.54
+AlEpsilon = 0.03917
+AlSigma = 2.83
+AlEps = 0.27
+AlAlpha = 1.16
 
-def calcForces(Masses, Velocities, TimeStep):
+def calcForces(Velocities, Positions):
     numOfAtoms, dimension = Velocities.shape
 
-    someForce = np.random.randn(numOfAtoms, dimension) * np.sqrt(2.0 * Masses / TimeStep)[np.newaxis].T
-    forces = (Velocities * Masses[np.newaxis].T) + someForce
+    forces = np.array([[0.0 for i in range(dimension)] for j in range(numOfAtoms)])
+
+    '''Вычисление силы из потенциала Леннарда_Джонса'''
+    for i in range(1, numOfAtoms):
+        R = math.sqrt((Positions[0][0] - Positions[i][0]) ** 2 +
+                      (Positions[0][1] - Positions[i][1]) ** 2 +
+                      (Positions[0][2] - Positions[i][2]) ** 2)
+        Force: float
+        Force = (48 * AgEpsilon * ((AgSigma ** 12) / (R ** 13) - 0.5 * (AgSigma ** 6) / (R ** 7)))
+
+        VelX = -(Positions[0][0] - Positions[i][0]) * Force / R
+        VelY = -(Positions[0][1] - Positions[i][1]) * Force / R
+        VelZ = -(Positions[0][2] - Positions[i][2]) * Force / R
+
+        forces[0][0] += VelX
+        forces[0][1] += VelY
+        forces[0][2] += VelZ
+
+    '''Вычисление силы из потенциала Морзе'''
+    for i in range(1, numOfAtoms):
+        for j in range(i+1,numOfAtoms):
+
+            R = math.sqrt((Positions[i][0] - Positions[j][0]) ** 2 +
+                          (Positions[i][1] - Positions[j][1]) ** 2 +
+                          (Positions[i][2] - Positions[j][2]) ** 2)
+            Force = AlEps*math.exp(-2*AlAlpha*R)*(AlAlpha*math.exp(AlAlpha*R)-4*AlAlpha)
+
+
+            VelX = -(Positions[i][0] - Positions[j][0]) * Force / R
+            VelY = -(Positions[i][1] - Positions[j][1]) * Force / R
+            VelZ = -(Positions[i][2] - Positions[j][2]) * Force / R
+
+            forces[i][0] += VelX
+            forces[i][1] += VelY
+            forces[i][2] += VelZ
+
+            forces[j][0] -= VelX
+            forces[j][1] -= VelY
+            forces[j][2] -= VelZ
 
     return forces
 
-
+'''Применение сил к молекулам по второму закону Ньютона'''
 def applyForces(Positions, Velocities, forces, Masses, TimeStep):
+    print("Vel1: ", Velocities* TimeStep)
     Positions += Velocities * TimeStep
     Velocities += forces * TimeStep / Masses[np.newaxis].T
-
-
+    print("Vel2: ", Velocities* TimeStep)
 
 def start(**args):
     """ Считывание данных из кортежа """
@@ -31,6 +75,7 @@ def start(**args):
 
     AgPosition = np.array([0.0 for i in range(dimension)])
     AgVelocity = np.array([0.0 for i in range(dimension)])
+    AgVelocity = np.array([0.0, 0.0, 0.0])
 
     AlMass = np.ones(AlNumOfAtoms) * AlMass
     AlRadius = np.ones(AlNumOfAtoms) * AlRadius
@@ -64,8 +109,8 @@ def start(**args):
     while step <= Steps:
         step += 1
 
-        forces = calcForces(Masses, Velocities, TimeStep)
-        applyForces(Positions, Velocities, forces, Masses, TimeStep)
-
+        forces = calcForces(Velocities, Positions) # Вычисление сил
+        applyForces(Positions, Velocities, forces, Masses, TimeStep) # Интегрирование позиций и скоростей
+        print("Pos:", Positions)
         Dump.writeOutput(OutputFileName, AlNumOfAtoms + 1, step, Borders,
                          radius=Radius, pos=Positions, v=Velocities)  # Вывод данных в .dump файл
