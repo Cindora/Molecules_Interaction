@@ -3,12 +3,12 @@ import numpy as np
 import math
 import os
 
-AgEpsilon = 0.00801  
-AgSigma = 3.54
-AlEpsilon = 0.03917
-AlSigma = 2.83
-AlEps = 0.27
-AlAlpha = 1.16
+AgEpsilon: float
+AgSigma: float
+AlEpsilon: float
+AlSigma: float
+AlEps: float
+AlAlpha: float
 
 def calcForces(Velocities, Positions):
     numOfAtoms, dimension = Velocities.shape
@@ -57,13 +57,16 @@ def calcForces(Velocities, Positions):
 
 '''Применение сил к молекулам по второму закону Ньютона'''
 def applyForces(Positions, Velocities, forces, Masses, TimeStep):
-    print("Vel1: ", Velocities* TimeStep)
     Positions += Velocities * TimeStep
     Velocities += forces * TimeStep / Masses[np.newaxis].T
-    print("Vel2: ", Velocities* TimeStep)
+
 
 def start(**args):
+    global AgEpsilon, AgSigma, AlEpsilon, AlSigma, AlEps, AlAlpha
+
     """ Считывание данных из кортежа """
+    AgEpsilon, AgSigma, AlEpsilon, AlSigma, AlEps, AlAlpha = \
+        args['AgEpsilon'], args['AgSigma'], args['AlEpsilon'], args['AlSigma'], args['AlEps'], args['AlAlpha']
     AgRadius, AgMass, AlNumOfAtoms, AlRadius, AlMass = \
         args['AgRadius'], args['AgMass'], args['AlNumOfAtoms'], args['AlRadius'], args['AlMass']
     TimeStep, Steps, OutputFrequency, Borders, OutputFileName = \
