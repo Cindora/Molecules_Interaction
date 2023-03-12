@@ -8,9 +8,9 @@ paramsAndConditions = {
     'AlRadius': 121e-3,
     'AlMass': 4.48038654E-26,
     'AlEpsilon': 0.03917,
-    'AlSigma': 2.83,
-    'AlEps': 0.27,
-    'AlAlpha': 1.16,
+    'AlSigma': 3.253,
+    'AlEps': 0.2703,
+    'AlAlpha': 1.1646,
 
     'TimeStep': 1e-16,
     'Steps': 100,
