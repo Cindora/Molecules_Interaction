@@ -2,6 +2,8 @@ import Dump
 import numpy as np
 import math
 import os
+import pandas as pd
+import json
 
 AgEpsilon: float
 AgSigma: float
@@ -33,17 +35,18 @@ def calcForces(Velocities, Positions):
 
     '''Вычисление силы из потенциала Морзе'''
     for i in range(1, numOfAtoms):
-        for j in range(i+1,numOfAtoms):
+        for j in range(i+1, numOfAtoms):
 
-            R = math.sqrt((Positions[i][0] - Positions[j][0]) ** 2 +
-                          (Positions[i][1] - Positions[j][1]) ** 2 +
-                          (Positions[i][2] - Positions[j][2]) ** 2)
+            rx = Positions[i][0] - Positions[j][0]
+            ry = Positions[i][1] - Positions[j][1]
+            rz = Positions[i][2] - Positions[j][2]
+
+            R = math.sqrt(rx ** 2 + ry ** 2 + rz ** 2)
             Force = AlEps*math.exp(-2*AlAlpha*R)*(AlAlpha*math.exp(AlAlpha*R)-4*AlAlpha)
 
-
-            VelX = -(Positions[i][0] - Positions[j][0]) * Force / R
-            VelY = -(Positions[i][1] - Positions[j][1]) * Force / R
-            VelZ = -(Positions[i][2] - Positions[j][2]) * Force / R
+            VelX = -rx * Force / R
+            VelY = -ry * Force / R
+            VelZ = -rz * Force / R
 
             forces[i][0] += VelX
             forces[i][1] += VelY
@@ -55,22 +58,64 @@ def calcForces(Velocities, Positions):
 
     return forces
 
+
 '''Применение сил к молекулам по второму закону Ньютона'''
 def applyForces(Positions, Velocities, forces, Masses, TimeStep):
     Positions += Velocities * TimeStep
     Velocities += forces * TimeStep / Masses[np.newaxis].T
 
 
-def start(**args):
+'''Считывание параметров из Data.csv'''
+def getParamsAndConditions():
+    paramsAndConditions = {
+        'AgRadius': 0,
+        'AgMass': 0,
+        'AgEpsilon': 0,
+        'AgSigma': 0,
+
+        'AlNumOfAtoms': 0,
+        'AlRadius': 0,
+        'AlMass': 0,
+        'AlEpsilon': 0,
+        'AlSigma': 0,
+        'AlEps': 0,
+        'AlAlpha': 0,
+
+        'TimeStep': 1e-16,
+        'Steps': 100,
+        'OutputFrequency': 2,
+        'Borders': [[], [], []],
+        'OutputFileName': 'output.dump'
+    }
+
+    dataobj = pd.read_csv('Data.csv', delimiter=';')
+    csv_list = [tuple(row) for row in dataobj.values]
+    for x in csv_list:
+        if x[0] == 'Borders':
+            paramsAndConditions[x[0]] = json.loads(x[1])
+        elif x[0] == 'OutputFileName':
+            paramsAndConditions[x[0]] = x[1]
+        else:
+            paramsAndConditions[x[0]] = float(x[1])
+    paramsAndConditions['AlNumOfAtoms'] = int(paramsAndConditions['AlNumOfAtoms'])
+    paramsAndConditions['Steps'] = int(paramsAndConditions['Steps'])
+    paramsAndConditions['OutputFrequency'] = int(paramsAndConditions['OutputFrequency'])
+
+    return paramsAndConditions
+
+
+def start():
     global AgEpsilon, AgSigma, AlEpsilon, AlSigma, AlEps, AlAlpha
 
+    paramsAndConditions = getParamsAndConditions()
+    
     """ Считывание данных из кортежа """
     AgEpsilon, AgSigma, AlEpsilon, AlSigma, AlEps, AlAlpha = \
-        args['AgEpsilon'], args['AgSigma'], args['AlEpsilon'], args['AlSigma'], args['AlEps'], args['AlAlpha']
+        paramsAndConditions['AgEpsilon'], paramsAndConditions['AgSigma'], paramsAndConditions['AlEpsilon'], paramsAndConditions['AlSigma'], paramsAndConditions['AlEps'], paramsAndConditions['AlAlpha']
     AgRadius, AgMass, AlNumOfAtoms, AlRadius, AlMass = \
-        args['AgRadius'], args['AgMass'], args['AlNumOfAtoms'], args['AlRadius'], args['AlMass']
+        paramsAndConditions['AgRadius'], paramsAndConditions['AgMass'], paramsAndConditions['AlNumOfAtoms'], paramsAndConditions['AlRadius'], paramsAndConditions['AlMass']
     TimeStep, Steps, OutputFrequency, Borders, OutputFileName = \
-        args['TimeStep'], args['Steps'], args['OutputFrequency'], args['Borders'], args['OutputFileName']
+        paramsAndConditions['TimeStep'], paramsAndConditions['Steps'], paramsAndConditions['OutputFrequency'], paramsAndConditions['Borders'], paramsAndConditions['OutputFileName']
 
     dimension = len(Borders)  # Вычислние размерности
 
@@ -114,6 +159,5 @@ def start(**args):
 
         forces = calcForces(Velocities, Positions) # Вычисление сил
         applyForces(Positions, Velocities, forces, Masses, TimeStep) # Интегрирование позиций и скоростей
-        print("Pos:", Positions)
         Dump.writeOutput(OutputFileName, AlNumOfAtoms + 1, step, Borders,
                          radius=Radius, pos=Positions, v=Velocities)  # Вывод данных в .dump файл
