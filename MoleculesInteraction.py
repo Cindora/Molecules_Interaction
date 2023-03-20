@@ -1,6 +1,5 @@
 import Dump
 import numpy as np
-import math
 import os
 import pandas as pd
 import json
@@ -19,7 +18,7 @@ def calcForces(Velocities, Positions):
 
     '''Вычисление силы из потенциала Леннарда_Джонса'''
     for i in range(1, numOfAtoms):
-        R = math.sqrt((Positions[0][0] - Positions[i][0]) ** 2 +
+        R = np.sqrt((Positions[0][0] - Positions[i][0]) ** 2 +
                       (Positions[0][1] - Positions[i][1]) ** 2 +
                       (Positions[0][2] - Positions[i][2]) ** 2)
         Force: float
@@ -41,8 +40,8 @@ def calcForces(Velocities, Positions):
             ry = Positions[i][1] - Positions[j][1]
             rz = Positions[i][2] - Positions[j][2]
 
-            R = math.sqrt(rx ** 2 + ry ** 2 + rz ** 2)
-            Force = AlEps*math.exp(-2*AlAlpha*R)*(AlAlpha*math.exp(AlAlpha*R)-4*AlAlpha)
+            R = np.sqrt(rx ** 2 + ry ** 2 + rz ** 2)
+            Force = AlEps*np.exp(-2*AlAlpha*R)*(AlAlpha*np.exp(AlAlpha*R)-4*AlAlpha)
 
             VelX = -rx * Force / R
             VelY = -ry * Force / R
